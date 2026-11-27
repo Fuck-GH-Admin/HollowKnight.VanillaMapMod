@@ -39,6 +39,10 @@ Optional and compatible:
 
 - [AdditionalMaps](https://github.com/SFGrenade/AdditionalMaps): adds map support for White Palace and Godhome.
 
+## UI language
+
+The pause menu and `Customize Pins` categories support built-in Chinese and English. When Hollow Knight is using a Chinese `ZH*` language code, the mod automatically displays Chinese; all other languages fall back to English. No extra language file is required, while `language.json` remains available as an optional custom override.
+
 ## Quick start
 
 After loading a save:
