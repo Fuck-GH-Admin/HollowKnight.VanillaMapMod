@@ -39,6 +39,10 @@ VanillaMapMod 会在《空洞骑士》的地图上增加物品位置图钉，可
 
 - [AdditionalMaps](https://github.com/SFGrenade/AdditionalMaps)：为白色宫殿和神居地图提供额外地图支持。
 
+## 界面语言
+
+暂停菜单和 `Customize Pins` 分类支持中英文双语：当《空洞骑士》当前语言为中文（简体/繁体等 `ZH*` 语言代码）时自动显示中文；其他语言默认显示英文。无需额外安装语言文件，`language.json` 仍可作为可选自定义覆盖。
+
 ## 快速使用
 
 进入存档后：
