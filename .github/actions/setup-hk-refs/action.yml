@@ -159,7 +159,6 @@ runs:
 
         foreach ($required in @(
           "Assembly-CSharp.dll",
-          "Modding.dll",
           "Mods\MapChanger\MapChanger.dll",
           "Mods\MagicUI\MagicUI.dll",
           "Mods\ConnectionMetadataInjector\ConnectionMetadataInjector.dll"
