@@ -11,7 +11,8 @@ public sealed class VanillaMapMod : Mod, ILocalSettings<LocalSettings>, IGlobalS
 {
     private static readonly string[] _dependencies = ["MapChangerMod", "CMICore"];
 
-    private static readonly MapMode[] _modes = [new NormalMode(), new FullMapMode()];
+    private static readonly MapMode[] _modes =
+        [new NormalMode(), new FullMapMode(), new MissingCollectiblesMode()];
 
     public VanillaMapMod()
     {
@@ -26,7 +27,7 @@ public sealed class VanillaMapMod : Mod, ILocalSettings<LocalSettings>, IGlobalS
 
     public override string GetVersion()
     {
-        return "2.1.6";
+        return "2.2.0";
     }
 
     public override int LoadPriority()
