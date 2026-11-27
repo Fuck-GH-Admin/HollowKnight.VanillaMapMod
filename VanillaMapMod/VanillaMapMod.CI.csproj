@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <RootNamespace>VanillaMapMod</RootNamespace>
+    <AssemblyName>VanillaMapMod</AssemblyName>
+    <LangVersion>preview</LangVersion>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Deterministic>true</Deterministic>
+    <NoWarn>CS7035</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="**/*.cs" Exclude="bin/**/*.cs;obj/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HKBuildUtils" Version="0.6.1" PrivateAssets="all" />
+    <ModReference Include="MapChanger" />
+    <ModReference Include="MagicUI" />
+    <ModReference Include="ConnectionMetadataInjector" />
+  </ItemGroup>
+</Project>
