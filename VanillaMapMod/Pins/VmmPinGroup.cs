@@ -20,6 +20,12 @@ internal class VmmPinGroup : MapObject
 
     private bool PoolSettingOn()
     {
+        if (ModeManager.CurrentMode() is MissingCollectiblesMode)
+        {
+            return (PoolGroup is PoolGroup.MaskShards or PoolGroup.VesselFragments)
+                && VanillaMapMod.LS.GetPoolGroupSetting(PoolGroup);
+        }
+
         return VanillaMapMod.LS.GetPoolGroupSetting(PoolGroup);
     }
 }
