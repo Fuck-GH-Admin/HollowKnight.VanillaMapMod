@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using ConnectionMetadataInjector.Util;
 using MapChanger;
 using MapChanger.Defs;
@@ -27,13 +28,29 @@ internal class VmmPin : BorderedBackgroundPin
             { PinSize.Huge, HUGE_SCALE },
         };
 
-    internal MapRoomPosition Mlp { get; private set; }
+    private Func<bool> _locationNotClearedOverride;
 
-    internal void Initialize(MapLocationDef mld, VmmPinGroup parent)
+    internal MapRoomPosition Mlp { get; private set; }
+    internal bool MissingCollectiblesOnly { get; private set; }
+
+    internal void Initialize(
+        MapLocationDef mld,
+        VmmPinGroup parent,
+        Func<bool> locationNotClearedOverride = null,
+        bool missingCollectiblesOnly = false
+    )
     {
         base.Initialize();
 
+        _locationNotClearedOverride = locationNotClearedOverride;
+        MissingCollectiblesOnly = missingCollectiblesOnly;
+
         ActiveModifiers.AddRange([CorrectMapOpen, ActiveByCurrentMode, LocationNotCleared]);
+
+        if (MissingCollectiblesOnly)
+        {
+            ActiveModifiers.Add(MissingCollectiblesModeActive);
+        }
 
         parent.AddChild(this);
         Mlp = new MapRoomPosition(mld.MapLocations);
@@ -73,6 +90,11 @@ internal class VmmPin : BorderedBackgroundPin
         BorderSprite = SpriteManager.Instance.GetSprite($"Pins.Border{VanillaMapMod.GS.PinShape}");
     }
 
+    internal bool IsCleared()
+    {
+        return !LocationNotCleared();
+    }
+
     private bool CorrectMapOpen()
     {
         return States.WorldMapOpen || (States.QuickMapOpen && States.CurrentMapZone == Mlp.MapZone);
@@ -80,17 +102,25 @@ internal class VmmPin : BorderedBackgroundPin
 
     private bool ActiveByCurrentMode()
     {
+        var currentMode = ModeManager.CurrentMode();
+
         return (
-                ModeManager.CurrentMode() is NormalMode
+                currentMode is NormalMode
                 && Utils.HasMapSetting(Mlp.MapZone)
                 && PlayerData.instance.GetVariable<List<string>>("scenesMapped").Contains(Mlp.MappedScene)
             )
-            || ModeManager.CurrentMode() is FullMapMode;
+            || currentMode is FullMapMode
+            || currentMode is MissingCollectiblesMode;
+    }
+
+    private bool MissingCollectiblesModeActive()
+    {
+        return ModeManager.CurrentMode() is MissingCollectiblesMode;
     }
 
     private bool LocationNotCleared()
     {
-        return !Tracker.HasClearedLocation(name);
+        return _locationNotClearedOverride?.Invoke() ?? !Tracker.HasClearedLocation(name);
     }
 
     private static Sprite GetSpriteFromPoolGroup(PoolGroup poolGroup)
