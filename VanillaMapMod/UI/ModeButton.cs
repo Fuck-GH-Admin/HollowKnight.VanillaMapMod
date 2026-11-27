@@ -17,6 +17,8 @@ internal class ModeButton : MainButton
         {
             NormalMode normalMode => new(text + normalMode.ModeName.L(), Colors.GetColor(ColorSetting.UI_Neutral)),
             FullMapMode fullMapMode => new(text + fullMapMode.ModeName.L(), Colors.GetColor(ColorSetting.UI_On)),
+            MissingCollectiblesMode missingMode =>
+                new(text + missingMode.ModeName.L(), Colors.GetColor(ColorSetting.UI_Custom)),
             _ => default,
         };
     }
