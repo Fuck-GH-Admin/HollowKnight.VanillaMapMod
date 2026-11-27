@@ -14,9 +14,29 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="HKBuildUtils" Version="0.6.1" PrivateAssets="all" />
-    <ModReference Include="MapChanger" />
-    <ModReference Include="MagicUI" />
-    <ModReference Include="ConnectionMetadataInjector" />
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(HollowKnightRefs)\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Modding">
+      <HintPath>$(HollowKnightRefs)\Modding.dll</HintPath>
+    </Reference>
+    <Reference Include="ConnectionMetadataInjector">
+      <HintPath>$(HollowKnightRefs)\Mods\ConnectionMetadataInjector\ConnectionMetadataInjector.dll</HintPath>
+    </Reference>
+    <Reference Include="MagicUI">
+      <HintPath>$(HollowKnightRefs)\Mods\MagicUI\MagicUI.dll</HintPath>
+    </Reference>
+    <Reference Include="MapChanger">
+      <HintPath>$(HollowKnightRefs)\Mods\MapChanger\MapChanger.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(HollowKnightRefs)\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(HollowKnightRefs)\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(HollowKnightRefs)\UnityEngine.UI.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>
