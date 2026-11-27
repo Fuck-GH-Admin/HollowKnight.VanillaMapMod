@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <RootNamespace>VanillaMapMod</RootNamespace>
+    <AssemblyName>VanillaMapMod</AssemblyName>
+    <LangVersion>preview</LangVersion>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Deterministic>true</Deterministic>
+    <NoWarn>CS7035</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="**/*.cs" Exclude="bin/**/*.cs;obj/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(HollowKnightRefs)\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="ConnectionMetadataInjector">
+      <HintPath>$(HollowKnightRefs)\Mods\ConnectionMetadataInjector\ConnectionMetadataInjector.dll</HintPath>
+    </Reference>
+    <Reference Include="MagicUI">
+      <HintPath>$(HollowKnightRefs)\Mods\MagicUI\MagicUI.dll</HintPath>
+    </Reference>
+    <Reference Include="MapChanger">
+      <HintPath>$(HollowKnightRefs)\Mods\MapChanger\MapChanger.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(HollowKnightRefs)\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(HollowKnightRefs)\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(HollowKnightRefs)\UnityEngine.UI.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

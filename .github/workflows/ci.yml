@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - "feature/**"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore CI project
+        run: dotnet restore VanillaMapMod/VanillaMapMod.CI.csproj
+
+      - name: Set up Hollow Knight references
+        id: hk-refs
+        uses: ./.github/actions/setup-hk-refs
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Compile mod
+        run: dotnet build VanillaMapMod/VanillaMapMod.CI.csproj -c Release --no-restore '-p:HollowKnightRefs=${{ steps.hk-refs.outputs.refs-path }}'

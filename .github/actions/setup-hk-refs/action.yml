@@ -1,0 +1,171 @@
+name: Set up Hollow Knight references
+description: Download pinned Hollow Knight and dependency references for reproducible CI builds.
+
+inputs:
+  api-tag:
+    description: Official hk-modding/api release tag.
+    required: false
+    default: 1.5.78.11833-77
+  asset-name:
+    description: Windows Modding API archive name.
+    required: false
+    default: moddingapi.v77.windows.zip
+  api-sha256:
+    description: SHA-256 of the Modding API archive.
+    required: false
+    default: bc9f0db3d0916b05cd5a2420bb602fb1b239ce3ff6c289fd84bffb682fb8f1d6
+  vanilla-url:
+    description: Vanilla reference archive.
+    required: false
+    default: https://files.catbox.moe/i4sdl6.zip
+  vanilla-sha256:
+    description: SHA-256 of the vanilla reference archive.
+    required: false
+    default: 15dbd6a5668c722c9b1e585b944756063a7f4b41f9c0e161a3c7649f1d3ab08e
+
+outputs:
+  refs-path:
+    description: Directory containing game, Modding API, and dependency references.
+    value: ${{ steps.download.outputs.refs-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Download and verify references
+      id: download
+      shell: pwsh
+      env:
+        MODDING_API_TAG: ${{ inputs.api-tag }}
+        MODDING_API_ASSET: ${{ inputs.asset-name }}
+        MODDING_API_SHA256: ${{ inputs.api-sha256 }}
+        VANILLA_REFS_URL: ${{ inputs.vanilla-url }}
+        VANILLA_REFS_SHA256: ${{ inputs.vanilla-sha256 }}
+      run: |
+        $ErrorActionPreference = "Stop"
+        $downloadDirectory = Join-Path $env:RUNNER_TEMP "hollow-knight-references"
+        $referencesDirectory = Join-Path $downloadDirectory "managed"
+        $vanillaArchive = Join-Path $downloadDirectory "vanilla.zip"
+        $moddingApiArchive = Join-Path $downloadDirectory $env:MODDING_API_ASSET
+        New-Item -ItemType Directory -Path $downloadDirectory -Force | Out-Null
+
+        function Download-VerifiedArchive {
+          param(
+            [string]$Name,
+            [string]$Url,
+            [string]$ExpectedSha256,
+            [string]$ArchivePath
+          )
+
+          curl.exe --location --fail --silent --show-error `
+            --retry 5 --retry-all-errors --retry-delay 3 `
+            --output $ArchivePath $Url
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $ArchivePath)) {
+            throw "Could not download $Name."
+          }
+
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $ArchivePath).Hash
+          if ($actual.ToUpperInvariant() -ne $ExpectedSha256.ToUpperInvariant()) {
+            throw "$Name checksum mismatch. Expected $ExpectedSha256, got $actual."
+          }
+        }
+
+        function Install-ModReference {
+          param(
+            [string]$Name,
+            [string]$Url,
+            [string]$Sha256,
+            [string]$DllName
+          )
+
+          $safeName = $Name -replace "[^A-Za-z0-9_.-]", "_"
+          $archive = Join-Path $downloadDirectory "$safeName.zip"
+          $extract = Join-Path $downloadDirectory "$safeName-extract"
+          $destination = Join-Path $referencesDirectory "Mods\$Name"
+
+          Download-VerifiedArchive $Name $Url $Sha256 $archive
+          Remove-Item -LiteralPath $extract -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path $extract -Force | Out-Null
+          Expand-Archive -LiteralPath $archive -DestinationPath $extract -Force
+
+          $dll = Get-ChildItem -LiteralPath $extract -Recurse -File -Filter $DllName | Select-Object -First 1
+          if ($null -eq $dll) {
+            throw "$Name archive does not contain $DllName."
+          }
+
+          New-Item -ItemType Directory -Path $destination -Force | Out-Null
+          Copy-Item -LiteralPath $dll.FullName -Destination (Join-Path $destination $DllName) -Force
+        }
+
+        Download-VerifiedArchive "vanilla Hollow Knight references" $env:VANILLA_REFS_URL $env:VANILLA_REFS_SHA256 $vanillaArchive
+
+        $downloaded = $false
+        for ($attempt = 1; $attempt -le 3; $attempt++) {
+          gh release download $env:MODDING_API_TAG `
+            --repo hk-modding/api `
+            --pattern $env:MODDING_API_ASSET `
+            --dir $downloadDirectory `
+            --clobber
+          if ($LASTEXITCODE -eq 0) {
+            $downloaded = $true
+            break
+          }
+          if ($attempt -lt 3) {
+            Start-Sleep -Seconds (5 * $attempt)
+          }
+        }
+        if (-not $downloaded -or -not (Test-Path -LiteralPath $moddingApiArchive)) {
+          throw "Could not download $env:MODDING_API_ASSET after three attempts."
+        }
+
+        $moddingApiHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $moddingApiArchive).Hash
+        if ($moddingApiHash.ToUpperInvariant() -ne $env:MODDING_API_SHA256.ToUpperInvariant()) {
+          throw "The Modding API archive checksum does not match."
+        }
+
+        New-Item -ItemType Directory -Path $referencesDirectory -Force | Out-Null
+        Expand-Archive -LiteralPath $vanillaArchive -DestinationPath $referencesDirectory -Force
+        Expand-Archive -LiteralPath $moddingApiArchive -DestinationPath $referencesDirectory -Force
+
+        # Pin the dependency versions and hashes currently published by hk-modding/modlinks.
+        Install-ModReference "MagicUI" `
+          "https://github.com/BadMagic100/HollowKnight.MagicUI/releases/download/v1.10.9277.8364/MagicUI.zip" `
+          "EED36275276EA1BC5E8538A7E77A70D4DC47E13E7938585E51575D4D1D946D05" `
+          "MagicUI.dll"
+        Install-ModReference "Satchel" `
+          "https://github.com/PrashantMohta/Satchel/releases/download/v0.9.4/Satchel.zip" `
+          "8999115B7A8E1F3C3303CCB3FB5FB57D536830BCECD74B4B11D6BF145FDF4E08" `
+          "Satchel.dll"
+        Install-ModReference "Vasi" `
+          "https://github.com/fifty-six/HollowKnight.Vasi/releases/download/v2/Vasi.zip" `
+          "B93FA7ECDF40D5F91F942ACFD31CD2A5243551720C96E18DDE99FD64919162EC" `
+          "Vasi.dll"
+        Install-ModReference "ItemChanger" `
+          "https://github.com/homothetyhk/HollowKnight.ItemChanger/releases/download/v2.1.6%2B927/ItemChanger.zip" `
+          "7D1C01EB5F5D5BA05713EC35EBF31D23096F8979578435B06F034ABB3B337D82" `
+          "ItemChanger.dll"
+        Install-ModReference "ConnectionMetadataInjector" `
+          "https://github.com/BadMagic100/ConnectionMetadataInjector/releases/download/v2.2.8484.33350/ConnectionMetadataInjector.zip" `
+          "02926D470544BA8D0CF25E1806B10B798ACDD5E85BB0E2D75A6022B536E5E1D0" `
+          "ConnectionMetadataInjector.dll"
+        Install-ModReference "MapChanger" `
+          "https://github.com/syyePhenomenol/MapChanger/releases/download/v1.3.12/MapChanger.zip" `
+          "A01A05560D46F680ADDEA289BA7A0ECCCF3B5E026D60090CFE97E81333E928A1" `
+          "MapChanger.dll"
+
+        $nativeSceneRepacker = Join-Path $referencesDirectory "unityscenerepacker.dll"
+        if (Test-Path -LiteralPath $nativeSceneRepacker) {
+          Remove-Item -LiteralPath $nativeSceneRepacker -Force
+        }
+
+        foreach ($required in @(
+          "Assembly-CSharp.dll",
+          "Mods\MapChanger\MapChanger.dll",
+          "Mods\MagicUI\MagicUI.dll",
+          "Mods\ConnectionMetadataInjector\ConnectionMetadataInjector.dll"
+        )) {
+          if (-not (Test-Path -LiteralPath (Join-Path $referencesDirectory $required))) {
+            throw "Required reference is missing: $required"
+          }
+        }
+
+        "refs-path=$referencesDirectory" >> $env:GITHUB_OUTPUT

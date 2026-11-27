@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ConnectionMetadataInjector.Util;
 using MapChanger;
+using MapChanger.Defs;
 using MapChanger.MonoBehaviours;
 using UnityEngine;
 using VanillaMapMod.Pins;
@@ -37,7 +38,9 @@ internal static class VmmPinManager
             PinGroups[poolGroup] = pinGroup;
         }
 
-        foreach (var mld in Finder.GetAllVanillaLocations().Values)
+        var vanillaLocations = Finder.GetAllVanillaLocations();
+
+        foreach (var mld in vanillaLocations.Values)
         {
             var pin = Utils.MakeMonoBehaviour<VmmPin>(goMap, mld.Name);
             pin.Initialize(mld, PinGroups[SubcategoryFinder.GetLocationPoolGroup(mld.Name)]);
@@ -45,7 +48,8 @@ internal static class VmmPinManager
             Pins[mld.Name] = pin;
         }
 
-        // Stagger the Z offset of each pin
+        MakeMissingCollectiblePins(goMap, vanillaLocations);
+
         IEnumerable<MapObject> pinsSorted = Pins
             .Values.OrderBy(mapObj => mapObj.transform.position.x)
             .ThenBy(mapObj => mapObj.transform.position.y);
@@ -65,7 +69,14 @@ internal static class VmmPinManager
     {
         string text;
 
-        IReadOnlyCollection<MapObject> pins = PinGroups[poolGroup].Children;
+        IEnumerable<VmmPin> pins = PinGroups[poolGroup].Children.OfType<VmmPin>();
+
+        if (ModeManager.CurrentMode() is not MissingCollectiblesMode)
+        {
+            pins = pins.Where(pin => !pin.MissingCollectiblesOnly);
+        }
+
+        var pinList = pins.ToList();
 
         if (IsPersistent(poolGroup))
         {
@@ -73,10 +84,145 @@ internal static class VmmPinManager
         }
         else
         {
-            text = pins.Where(pin => Tracker.HasClearedLocation(pin.name)).Count().ToString() + " / ";
+            text = pinList.Count(pin => pin.IsCleared()).ToString() + " / ";
         }
 
-        return text + pins.Count().ToString();
+        return text + pinList.Count.ToString();
+    }
+
+    private static void MakeMissingCollectiblePins(
+        GameObject goMap,
+        Dictionary<string, MapLocationDef> vanillaLocations
+    )
+    {
+        AddMissingCollectiblePin(
+            goMap,
+            vanillaLocations,
+            "Sly",
+            "Missing_Mask_Shard-Sly_1",
+            PoolGroup.MaskShards,
+            () => !PlayerData.instance.GetBool("slyShellFrag1"),
+            -0.45f,
+            -0.35f
+        );
+        AddMissingCollectiblePin(
+            goMap,
+            vanillaLocations,
+            "Sly",
+            "Missing_Mask_Shard-Sly_2",
+            PoolGroup.MaskShards,
+            () => !PlayerData.instance.GetBool("slyShellFrag2"),
+            0.45f,
+            -0.35f
+        );
+        AddMissingCollectiblePin(
+            goMap,
+            vanillaLocations,
+            "Sly",
+            "Missing_Vessel_Fragment-Sly_1",
+            PoolGroup.VesselFragments,
+            () => !PlayerData.instance.GetBool("slyVesselFrag1"),
+            0f,
+            -0.75f
+        );
+
+        AddMissingCollectiblePin(
+            goMap,
+            vanillaLocations,
+            "Sly_(Key)",
+            "Missing_Mask_Shard-Sly_3",
+            PoolGroup.MaskShards,
+            () => !PlayerData.instance.GetBool("slyShellFrag3"),
+            -0.45f,
+            0.35f
+        );
+        AddMissingCollectiblePin(
+            goMap,
+            vanillaLocations,
+            "Sly_(Key)",
+            "Missing_Mask_Shard-Sly_4",
+            PoolGroup.MaskShards,
+            () => !PlayerData.instance.GetBool("slyShellFrag4"),
+            0.45f,
+            0.35f
+        );
+        AddMissingCollectiblePin(
+            goMap,
+            vanillaLocations,
+            "Sly_(Key)",
+            "Missing_Vessel_Fragment-Sly_2",
+            PoolGroup.VesselFragments,
+            () => !PlayerData.instance.GetBool("slyVesselFrag2"),
+            0f,
+            0.75f
+        );
+
+        AddMissingCollectiblePin(
+            goMap,
+            vanillaLocations,
+            "Grubfather",
+            "Missing_Mask_Shard-Grubfather",
+            PoolGroup.MaskShards,
+            () => !Tracker.HasSceneData("Heart Piece", "Crossroads_38")
+        );
+
+        AddMissingCollectiblePin(
+            goMap,
+            vanillaLocations,
+            "Seer",
+            "Missing_Vessel_Fragment-Seer",
+            PoolGroup.VesselFragments,
+            () => !PlayerData.instance.GetBool("dreamReward5"),
+            -0.35f,
+            0f
+        );
+        AddMissingCollectiblePin(
+            goMap,
+            vanillaLocations,
+            "Seer",
+            "Missing_Mask_Shard-Seer",
+            PoolGroup.MaskShards,
+            () => !PlayerData.instance.GetBool("dreamReward7"),
+            0.35f,
+            0f
+        );
+    }
+
+    private static void AddMissingCollectiblePin(
+        GameObject goMap,
+        Dictionary<string, MapLocationDef> vanillaLocations,
+        string sourceLocation,
+        string pinName,
+        PoolGroup poolGroup,
+        Func<bool> isMissing,
+        float offsetX = 0f,
+        float offsetY = 0f
+    )
+    {
+        if (!vanillaLocations.TryGetValue(sourceLocation, out var source))
+        {
+            VanillaMapMod.Instance.LogWarn($"Missing source location for collectible pin: {sourceLocation}");
+            return;
+        }
+
+        var mld = source with
+        {
+            Name = pinName,
+            MapLocations = source
+                .MapLocations.Select(location =>
+                    location with
+                    {
+                        X = location.X + offsetX,
+                        Y = location.Y + offsetY,
+                    }
+                )
+                .ToArray(),
+        };
+
+        var pin = Utils.MakeMonoBehaviour<VmmPin>(goMap, pinName);
+        pin.Initialize(mld, PinGroups[poolGroup], isMissing, missingCollectiblesOnly: true);
+
+        Pins[pinName] = pin;
     }
 
     private static bool IsPersistent(PoolGroup poolGroup)
